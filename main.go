@@ -307,6 +307,7 @@ func connectWS() {
 }
 
 func main() {
+	lastReport = time.Now()
 	sendTelegram("🤖 Bot started")
 	connectWS()
 }
