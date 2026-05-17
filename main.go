@@ -249,13 +249,26 @@ func connectWS() {
 				continue
 			}
 
-			priceFloat, ok := last[2].(float64)
-			if !ok {
+			priceRaw := last[2]
+
+			var currentPrice float64
+			
+			switch v := priceRaw.(type) {
+			
+			case float64:
+				currentPrice = v
+			
+			case string:
+				fmt.Sscanf(v, "%f", &currentPrice)
+			
+			default:
 				continue
 			}
-
-			currentPrice := priceFloat
-
+			
+			if currentPrice <= 0 {
+				continue
+			}
+			
 			log.Println("price:", currentPrice)
 
 			if !inPosition {
