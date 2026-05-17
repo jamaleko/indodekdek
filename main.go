@@ -14,14 +14,21 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.005 // +0.5%
-	slPercent       = 0.003 // -0.3%
+	tpPercent       = 0.002 // +0.5%
+	slPercent       = 0.002 // -0.3%
 	maxDailyLoss    = 1000.0
-	fixedTradeLimit = 50000.0
+	fixedTradeLimit = 10000.0
+
+	buyFeePercent  = 0.002111 // ganti sesuai fee asli
+	sellFeePercent = 0.004211 // ganti sesuai fee asli
+	
+	spreadPercent  = 0.0001
+	slippagePercent = 0.0001
+)
 )
 
 var (
-	virtualBalance = 50000.0
+	virtualBalance = 10000.0
 	dailyLoss      = 0.0
 	currentDay     = time.Now().Day()
 
@@ -121,56 +128,74 @@ func getTradeAmount() float64 {
 }
 
 func openPosition(price float64) {
-	tradeAmount = getTradeAmount()
 
-	if tradeAmount <= 0 {
-		return
-	}
-
-	coinAmount = tradeAmount / price
-
-	entryPrice = price
-	tpPrice = entryPrice * (1 + tpPercent)
-	slPrice = entryPrice * (1 - slPercent)
-
-	inPosition = true
-
-	sendTelegram(fmt.Sprintf(
-		"🚀 BUY ETHIDR\n\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f\nSaldo: Rp%.0f",
-		entryPrice,
-		tpPrice,
-		slPrice,
-		tradeAmount,
-		virtualBalance,
-	))
+	 tradeAmount = getTradeAmount()
+	
+	 if tradeAmount <= 0 {
+	  return
+	 }
+	
+	 // spread + slippage saat BUY
+	 realBuyPrice := price *
+	  (1 + spreadPercent + slippagePercent)
+	
+	 buyFee := tradeAmount * buyFeePercent
+	
+	 netTrade := tradeAmount - buyFee
+	
+	 coinAmount = netTrade / realBuyPrice
+	
+	 entryPrice = realBuyPrice
+	
+	 tpPrice = entryPrice * (1 + tpPercent)
+	 slPrice = entryPrice * (1 - slPercent)
+	
+	 inPosition = true
+	
+	 sendTelegram(fmt.Sprintf(
+	  "🚀 BUY ETHIDR\n\nEntry: %.0f\nFee: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f",
+	  entryPrice,
+	  buyFee,
+	  tpPrice,
+	  slPrice,
+	  tradeAmount,
+	 ))
 }
 
 func closePosition(price float64) {
-	result := coinAmount * price
-	pnl := result - tradeAmount
 
-	virtualBalance += pnl
-
-	status := "✅ TP HIT"
-
-	if pnl < 0 {
-		status = "❌ SL HIT"
-		dailyLoss += -pnl
-	}
-
-	sendTelegram(fmt.Sprintf(
-		"%s\n\nExit: %.0f\nPnL: %.0f\nSaldo: Rp%.0f\nRugi harian: Rp%.0f / Rp%.0f",
-		status,
-		price,
-		pnl,
-		virtualBalance,
-		dailyLoss,
-		maxDailyLoss,
-	))
-
-	inPosition = false
+	 // spread + slippage saat SELL
+	 realSellPrice := price *
+	  (1 - spreadPercent - slippagePercent)
+	
+	 result := coinAmount * realSellPrice
+	
+	 sellFee := result * sellFeePercent
+	
+	 netResult := result - sellFee
+	
+	 pnl := netResult - tradeAmount
+	
+	 virtualBalance += pnl
+	
+	 status := "✅ TP HIT"
+	
+	 if pnl < 0 {
+	  status = "❌ SL HIT"
+	  dailyLoss += -pnl
+	 }
+	
+	 sendTelegram(fmt.Sprintf(
+	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
+	  status,
+	  realSellPrice,
+	  sellFee,
+	  pnl,
+	  virtualBalance,
+	 ))
+	
+	 inPosition = false
 }
-
 func connectWS() {
 	for {
 		log.Println("connecting websocket...")
