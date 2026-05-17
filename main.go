@@ -178,15 +178,7 @@ func closePosition(price float64, reason string) {
 	 virtualBalance += pnl
 	
 	 status := reason
-	 if currentPrice >= tpPrice {
-	 closePosition(currentPrice,"✅ TP HIT")
-	 continue
-	}
-	
-	if currentPrice <= slPrice {
-	 closePosition(currentPrice,"❌ SL HIT")
-	 continue
-	}
+	 
 	 sendTelegram(fmt.Sprintf(
 	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
 	  status,
@@ -321,13 +313,13 @@ func connectWS() {
 			}
 
 			if currentPrice >= tpPrice {
-				closePosition(currentPrice)
-				continue
+			 closePosition(currentPrice,"✅ TP HIT")
+			 continue
 			}
-
+			
 			if currentPrice <= slPrice {
-				closePosition(currentPrice)
-				continue
+			 closePosition(currentPrice,"❌ SL HIT")
+			 continue
 			}
 		}
 	}
