@@ -14,8 +14,8 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.005 // +0.5%
-	slPercent       = 0.003 // -0.3%
+	tpPercent       = 0.001 // +0.5%
+	slPercent       = 0.001 // -0.3%
 	maxDailyLoss    = 1000.0
 	fixedTradeLimit = 50000.0
 )
@@ -33,6 +33,8 @@ var (
 
 	tradeAmount = 0.0
 	coinAmount  = 0.0
+
+	lastReport time.Time
 )
 
 type AuthMessage struct {
@@ -271,6 +273,21 @@ func connectWS() {
 			
 			log.Println("price:", currentPrice)
 
+			if time.Since(lastReport) >= 5*time.Minute {
+
+			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
+			
+			 sendTelegram(fmt.Sprintf(
+			  "📊 ETH LIVE\n\nCurrent: %.0f\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nPerubahan: %.3f%%",
+			  currentPrice,
+			  entryPrice,
+			  tpPrice,
+			  slPrice,
+			  changePercent,
+			 ))
+			
+			 lastReport = time.Now()
+			}
 			if !inPosition {
 				openPosition(currentPrice)
 				continue
