@@ -41,6 +41,13 @@ var (
 	coinAmount  = 0.0
 
 	lastReport time.Time
+	prices []float64
+
+	ema9 float64
+	ema21 float64
+	
+	prevEMA9 float64
+	prevEMA21 float64
 )
 
 type AuthMessage struct {
@@ -65,6 +72,23 @@ type WSMessage struct {
 			Data [][]interface{} `json:"data"`
 		} `json:"data"`
 	} `json:"result"`
+}
+
+func calculateEMA(period int, prices []float64) float64 {
+
+ if len(prices) < period {
+  return 0
+ }
+
+ k := 2.0 / float64(period+1)
+
+ ema := prices[0]
+
+ for i := 1; i < len(prices); i++ {
+  ema = (prices[i] * k) + (ema * (1 - k))
+ }
+
+ return ema
 }
 
 func sendTelegram(message string) {
@@ -291,7 +315,27 @@ func connectWS() {
 			}
 			
 			log.Println("price:", currentPrice)
+			prices = append(prices, currentPrice)
 
+			// simpan maksimal 100 data
+			if len(prices) > 100 {
+			 prices = prices[1:]
+			}
+			
+			if len(prices) >= 21 {
+			
+			 prevEMA9 = ema9
+			 prevEMA21 = ema21
+			
+			 ema9 = calculateEMA(9, prices)
+			 ema21 = calculateEMA(21, prices)
+			
+			 log.Printf(
+			  "EMA9: %.0f | EMA21: %.0f",
+			  ema9,
+			  ema21,
+			 )
+			}
 			if time.Since(lastReport) >= 4*time.Hour {
 
 			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
@@ -308,8 +352,21 @@ func connectWS() {
 			 lastReport = time.Now()
 			}
 			if !inPosition {
-				openPosition(currentPrice)
-				continue
+
+			 if prevEMA9 <= prevEMA21 &&
+			  ema9 > ema21 {
+			
+			  sendTelegram(
+			   fmt.Sprintf(
+			    "📈 EMA CROSS BUY\nEMA9: %.0f\nEMA21: %.0f",
+			    ema9,
+			    ema21,
+			   ),
+			  )
+			
+			  openPosition(currentPrice)
+			  continue
+			 }
 			}
 
 			if currentPrice >= tpPrice {
