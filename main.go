@@ -186,7 +186,13 @@ func openPosition(price float64) {
 }
 
 func closePosition(price float64, reason string) {
-
+	 if !inPosition {
+	  return
+	 }
+	
+	 if coinAmount <= 0 {
+	  return
+	 }
 	 // spread + slippage saat SELL
 	 realSellPrice := price *
 	  (1 - spreadPercent - slippagePercent)
@@ -213,6 +219,12 @@ func closePosition(price float64, reason string) {
 	 ))
 	
 	 inPosition = false
+
+	entryPrice = 0
+	tpPrice = 0
+	slPrice = 0
+	coinAmount = 0
+	tradeAmount = 0
 }
 func connectWS() {
 	for {
@@ -368,7 +380,7 @@ func connectWS() {
 			  continue
 			 }
 			}
-
+		if inPosition {
 			if currentPrice >= tpPrice {
 			 closePosition(currentPrice,"✅ TP HIT")
 			 continue
@@ -377,6 +389,7 @@ func connectWS() {
 			if currentPrice <= slPrice {
 			 closePosition(currentPrice,"❌ SL HIT")
 			 continue
+			}
 			}
 		}
 	}
