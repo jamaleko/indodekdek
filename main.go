@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	virtualBalance = 10000.0
+	virtualBalance = 13825.0
 	dailyLoss      = 0.0
 	currentDay     = time.Now().Day()
 
@@ -50,7 +50,18 @@ var (
 	prevEMA21 float64
 	rsi float64
 	ema50 float64
+
+	currentCandle Candle
+ 	candleCloses []float64
 )
+
+type Candle struct {
+ Open  float64
+ High  float64
+ Low   float64
+ Close float64
+ Time  time.Time
+}
 
 type AuthMessage struct {
 	Params struct {
@@ -119,6 +130,53 @@ func calculateEMA(period int, prices []float64) float64 {
  }
 
  return ema
+}
+func updateCandle(currentPrice float64) {
+
+ if currentCandle.Open == 0 {
+
+  currentCandle.Open = currentPrice
+  currentCandle.High = currentPrice
+  currentCandle.Low = currentPrice
+  currentCandle.Close = currentPrice
+  currentCandle.Time = time.Now()
+
+  return
+ }
+
+ if currentPrice > currentCandle.High {
+  currentCandle.High = currentPrice
+ }
+
+ if currentPrice < currentCandle.Low {
+  currentCandle.Low = currentPrice
+ }
+
+ currentCandle.Close = currentPrice
+
+ if time.Since(currentCandle.Time) >= 5*time.Minute {
+
+  candleCloses = append(
+   candleCloses,
+   currentCandle.Close,
+  )
+
+  if len(candleCloses) > 100 {
+   candleCloses = candleCloses[1:]
+  }
+
+  sendTelegram(
+   fmt.Sprintf(
+    "🕯️ Candle 5m\nO: %.0f\nH: %.0f\nL: %.0f\nC: %.0f",
+    currentCandle.Open,
+    currentCandle.High,
+    currentCandle.Low,
+    currentCandle.Close,
+   ),
+  )
+
+  currentCandle = Candle{}
+ }
 }
 
 func sendTelegram(message string) {
@@ -357,23 +415,32 @@ func connectWS() {
 			}
 			
 			log.Println("price:", currentPrice)
-			prices = append(prices, currentPrice)
+			updateCandle(currentPrice)
 
-			// simpan maksimal 100 data
-			if len(prices) > 100 {
-			 prices = prices[1:]
-			}
+			if len(candleCloses) >= 50 {
 			
-			if len(prices) >= 50 {
-
 			 prevEMA9 = ema9
 			 prevEMA21 = ema21
 			
-			 ema9 = calculateEMA(9, prices)
-			 ema21 = calculateEMA(21, prices)
-			 ema50 = calculateEMA(50, prices)
+			 ema9 = calculateEMA(
+			  9,
+			  candleCloses,
+			 )
 			
-			 rsi = calculateRSI(14, prices)
+			 ema21 = calculateEMA(
+			  21,
+			  candleCloses,
+			 )
+			
+			 ema50 = calculateEMA(
+			  50,
+			  candleCloses,
+			 )
+			
+			 rsi = calculateRSI(
+			  14,
+			  candleCloses,
+			 )
 			
 			 log.Printf(
 			  "EMA9: %.0f | EMA21: %.0f | EMA50: %.0f | RSI: %.2f",
@@ -403,6 +470,7 @@ func connectWS() {
 			 if prevEMA9 <= prevEMA21 &&
 			  ema9 > ema21 &&
 			  currentPrice > ema50 &&
+			  rsi > 45 &&
 			  rsi < 70 {
 			
 			  sendTelegram(
