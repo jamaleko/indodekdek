@@ -161,7 +161,7 @@ func openPosition(price float64) {
 	 ))
 }
 
-func closePosition(price float64) {
+func closePosition(price float64, reason string) {
 
 	 // spread + slippage saat SELL
 	 realSellPrice := price *
@@ -177,13 +177,16 @@ func closePosition(price float64) {
 	
 	 virtualBalance += pnl
 	
-	 status := "✅ TP HIT"
+	 status := reason
+	 if currentPrice >= tpPrice {
+	 closePosition(currentPrice,"✅ TP HIT")
+	 continue
+	}
 	
-	 if pnl < 0 {
-	  status = "❌ SL HIT"
-	  dailyLoss += -pnl
-	 }
-	
+	if currentPrice <= slPrice {
+	 closePosition(currentPrice,"❌ SL HIT")
+	 continue
+	}
 	 sendTelegram(fmt.Sprintf(
 	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
 	  status,
