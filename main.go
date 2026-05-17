@@ -14,8 +14,8 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.001 // +0.5%
-	slPercent       = 0.001 // -0.3%
+	tpPercent       = 0.005 // +0.5%
+	slPercent       = 0.003 // -0.3%
 	maxDailyLoss    = 1000.0
 	fixedTradeLimit = 50000.0
 )
