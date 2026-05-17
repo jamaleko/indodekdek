@@ -175,7 +175,7 @@ func connectWS() {
             ID:     "2",
         }
 
-        subscribe.Params.Channel = "market:trade-activity-btcidr"
+        subscribe.Params.Channel = "chart:tick-btcidr"
 
         err = conn.WriteJSON(subscribe)
         if err != nil {
