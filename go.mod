@@ -1,4 +1,4 @@
-module indodax-paper-bot
+module indodekdek
 
 go 1.24
 
