@@ -417,7 +417,7 @@ func connectWS() {
 			log.Println("price:", currentPrice)
 			updateCandle(currentPrice)
 
-			if len(candleCloses) >= 50 {
+			if len(candleCloses) >= 15 {
 			
 			 prevEMA9 = ema9
 			 prevEMA21 = ema21
@@ -433,7 +433,7 @@ func connectWS() {
 			 )
 			
 			 ema50 = calculateEMA(
-			  50,
+			  10,
 			  candleCloses,
 			 )
 			
@@ -450,7 +450,7 @@ func connectWS() {
 			  rsi,
 			 )
 			}
-			if time.Since(lastReport) >= 5*time.Minute {
+			if time.Since(lastReport) >= 4*time.Hour {
 
 			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
 			
