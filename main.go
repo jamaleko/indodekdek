@@ -187,7 +187,7 @@ func connectWS() {
 			ID: 1,
 		}
 
-		auth.Params.Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE5NDY2NTQzOTUsImlhdCI6MTYzMzExNTk5NSwidXNlciI6IndzIn0.dummy"
+		auth.Params.Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE5NDY2MTg0MTV9.UR1lBM6Eqh0yWz-PVirw1uPCxe60FdchR8eNVdsskeo"
 
 		err = conn.WriteJSON(auth)
 		if err != nil {
