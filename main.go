@@ -14,8 +14,8 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.005 // +0.5%
-	slPercent       = 0.003 // -0.3%
+	tpPercent       = 0.0025 // +0.5%
+	slPercent       = 0.0025 // -0.3%
 	maxDailyLoss    = 1000.0
 	fixedTradeLimit = 10000.0
 
@@ -48,6 +48,8 @@ var (
 	
 	prevEMA9 float64
 	prevEMA21 float64
+	rsi float64
+	ema50 float64
 )
 
 type AuthMessage struct {
@@ -72,6 +74,34 @@ type WSMessage struct {
 			Data [][]interface{} `json:"data"`
 		} `json:"data"`
 	} `json:"result"`
+}
+func calculateRSI(period int, prices []float64) float64 {
+
+ if len(prices) < period+1 {
+  return 0
+ }
+
+ var gain float64
+ var loss float64
+
+ for i := len(prices)-period; i < len(prices); i++ {
+
+  diff := prices[i] - prices[i-1]
+
+  if diff > 0 {
+   gain += diff
+  } else {
+   loss += -diff
+  }
+ }
+
+ if loss == 0 {
+  return 100
+ }
+
+ rs := gain / loss
+
+ return 100 - (100 / (1 + rs))
 }
 
 func calculateEMA(period int, prices []float64) float64 {
@@ -334,21 +364,26 @@ func connectWS() {
 			 prices = prices[1:]
 			}
 			
-			if len(prices) >= 21 {
-			
+			if len(prices) >= 50 {
+
 			 prevEMA9 = ema9
 			 prevEMA21 = ema21
 			
 			 ema9 = calculateEMA(9, prices)
 			 ema21 = calculateEMA(21, prices)
+			 ema50 = calculateEMA(50, prices)
+			
+			 rsi = calculateRSI(14, prices)
 			
 			 log.Printf(
-			  "EMA9: %.0f | EMA21: %.0f",
+			  "EMA9: %.0f | EMA21: %.0f | EMA50: %.0f | RSI: %.2f",
 			  ema9,
 			  ema21,
+			  ema50,
+			  rsi,
 			 )
 			}
-			if time.Since(lastReport) >= 4*time.Hour {
+			if time.Since(lastReport) >= 5*time.Minute {
 
 			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
 			
@@ -366,18 +401,21 @@ func connectWS() {
 			if !inPosition {
 
 			 if prevEMA9 <= prevEMA21 &&
-			  ema9 > ema21 {
+			  ema9 > ema21 &&
+			  currentPrice > ema50 &&
+			  rsi < 70 {
 			
 			  sendTelegram(
 			   fmt.Sprintf(
-			    "📈 EMA CROSS BUY\nEMA9: %.0f\nEMA21: %.0f",
+			    "📈 BUY SIGNAL\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
 			    ema9,
 			    ema21,
+			    ema50,
+			    rsi,
 			   ),
 			  )
 			
 			  openPosition(currentPrice)
-			  continue
 			 }
 			}
 		if inPosition {
