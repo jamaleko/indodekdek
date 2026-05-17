@@ -36,7 +36,7 @@ var (
 )
 
 type SubscribeMessage struct {
-    Method int `json:"method"`
+    Method string `json:"method"`
     Params struct {
         Channel string `json:"channel"`
     } `json:"params"`
@@ -171,8 +171,8 @@ func connectWS() {
         sendTelegram("🟢 WebSocket connected")
 
         subscribe := SubscribeMessage{
-            Method: 1,
-            ID:     2,
+            Method: "1",
+            ID:     "2",
         }
 
         subscribe.Params.Channel = "market:trade-activity-btcidr"
