@@ -25,7 +25,6 @@ const (
 	spreadPercent  = 0.0001
 	slippagePercent = 0.0001
 )
-)
 
 var (
 	virtualBalance = 10000.0
