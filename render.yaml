@@ -1,4 +1,4 @@
 services:
   - type: worker
-    name: indodax-paper-bot
+    name: indodekdek
     env: docker
