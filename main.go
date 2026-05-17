@@ -134,7 +134,7 @@ func openPosition(price float64) {
 	inPosition = true
 
 	sendTelegram(fmt.Sprintf(
-		"🚀 BUY BTCIDR\n\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f\nSaldo: Rp%.0f",
+		"🚀 BUY ETHIDR\n\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f\nSaldo: Rp%.0f",
 		entryPrice,
 		tpPrice,
 		slPrice,
@@ -204,7 +204,7 @@ func connectWS() {
 			ID:     2,
 		}
 
-		subscribe.Params.Channel = "chart:tick-btcidr"
+		subscribe.Params.Channel = "chart:tick-ethidr"
 
 		err = conn.WriteJSON(subscribe)
 		if err != nil {
