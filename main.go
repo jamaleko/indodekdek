@@ -14,8 +14,8 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.002 // +0.5%
-	slPercent       = 0.002 // -0.3%
+	tpPercent       = 0.005 // +0.5%
+	slPercent       = 0.003 // -0.3%
 	maxDailyLoss    = 1000.0
 	fixedTradeLimit = 10000.0
 
@@ -292,7 +292,7 @@ func connectWS() {
 			
 			log.Println("price:", currentPrice)
 
-			if time.Since(lastReport) >= 5*time.Minute {
+			if time.Since(lastReport) >= 4*time.Hour {
 
 			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
 			
