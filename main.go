@@ -14,8 +14,8 @@ import (
 
 const (
 	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.0025 // +0.5%
-	slPercent       = 0.0025 // -0.3%
+	tpPercent       = 0.005 // +0.5% (kalau eth 0.0025 masih rugi walaupun TP)
+	slPercent       = 0.003 // -0.3%
 	maxDailyLoss    = 1000.0
 	fixedTradeLimit = 10000.0
 
@@ -278,7 +278,7 @@ func openPosition(price float64) {
 	 inPosition = true
 	
 	 sendTelegram(fmt.Sprintf(
-	  "🚀 BUY ETHIDR\n\nEntry: %.0f\nFee: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f",
+	  "🚀 BUY DOGEIDR\n\nEntry: %.0f\nFee: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f",
 	  entryPrice,
 	  buyFee,
 	  tpPrice,
@@ -363,7 +363,7 @@ func connectWS() {
 			ID:     2,
 		}
 
-		subscribe.Params.Channel = "chart:tick-ethidr"
+		subscribe.Params.Channel = "chart:tick-dogeidr"
 
 		err = conn.WriteJSON(subscribe)
 		if err != nil {
