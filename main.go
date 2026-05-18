@@ -330,7 +330,7 @@ func connectWS() {
 			ID: 1,
 		}
 
-		auth.Params.Token = "ISI_TOKEN_KAMU"
+		auth.Params.Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE5NDY2MTg0MTV9.UR1lBM6Eqh0yWz-PVirw1uPCxe60FdchR8eNVdsskeo"
 
 		conn.WriteJSON(auth)
 
