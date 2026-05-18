@@ -165,7 +165,7 @@ func updateCandle(currentPrice float64) {
    candleCloses = candleCloses[1:]
   }
 
-  sendTelegram(
+  /*sendTelegram(
    fmt.Sprintf(
     "🕯️ Candle 5m\nO: %.0f\nH: %.0f\nL: %.0f\nC: %.0f",
     currentCandle.Open,
@@ -173,21 +173,21 @@ func updateCandle(currentPrice float64) {
     currentCandle.Low,
     currentCandle.Close,
    ),
-  )
+  )*/
   prevEMA9 = ema9
 	prevEMA21 = ema21
 	
 	ema9 = calculateEMA(9, candleCloses)
-	ema21 = calculateEMA(21, candleCloses)
+	ema21 = calculateEMA(14, candleCloses)
 	ema50 = calculateEMA(10, candleCloses)
 	rsi = calculateRSI(14, candleCloses)
-  sendTelegram(fmt.Sprintf(
+  /*sendTelegram(fmt.Sprintf(
 				"📊 CHECK\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
 				ema9,
 				ema21,
 				ema50,
 				rsi,
-			))
+			))*/
 
   currentCandle = Candle{}
  }
@@ -481,7 +481,7 @@ func connectWS() {
 			}
 			if !inPosition {
 
-			 if len(candleCloses) >= 21 &&
+			 if len(candleCloses) >= 14 &&
 			  ema9 > ema21 &&
 			  currentPrice > ema50 &&
 			  rsi > 45 &&
