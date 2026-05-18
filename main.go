@@ -13,23 +13,26 @@ import (
 )
 
 const (
-	wsURL           = "wss://ws3.indodax.com/ws/"
-	tpPercent       = 0.0025 // +0.5%
-	slPercent       = 0.0025 // -0.3%
-	maxDailyLoss    = 1000.0
+	wsURL = "wss://ws3.indodax.com/ws/"
+
+	// TP / SL
+	tpPercent = 0.0025 // +0.5%
+	slPercent = 0.0025 // -0.3%
+
+	// trading
 	fixedTradeLimit = 10000.0
 
-	buyFeePercent  = 0.002111 // ganti sesuai fee asli
-	sellFeePercent = 0.004211 // ganti sesuai fee asli
-	
-	spreadPercent  = 0.0001
+	// fee
+	buyFeePercent  = 0.002111
+	sellFeePercent = 0.004211
+
+	// simulasi spread/slippage
+	spreadPercent   = 0.0001
 	slippagePercent = 0.0001
 )
 
 var (
 	virtualBalance = 13825.0
-	dailyLoss      = 0.0
-	currentDay     = time.Now().Day()
 
 	inPosition = false
 
@@ -40,27 +43,23 @@ var (
 	tradeAmount = 0.0
 	coinAmount  = 0.0
 
-	lastReport time.Time
-	prices []float64
-
-	ema9 float64
+	ema9  float64
 	ema21 float64
-	
-	prevEMA9 float64
-	prevEMA21 float64
-	rsi float64
 	ema50 float64
+	rsi   float64
 
 	currentCandle Candle
- 	candleCloses []float64
+	candleCloses  []float64
+
+	lastReport time.Time
 )
 
 type Candle struct {
- Open  float64
- High  float64
- Low   float64
- Close float64
- Time  time.Time
+	Open  float64
+	High  float64
+	Low   float64
+	Close float64
+	Time  time.Time
 }
 
 type AuthMessage struct {
@@ -86,114 +85,55 @@ type WSMessage struct {
 		} `json:"data"`
 	} `json:"result"`
 }
-func calculateRSI(period int, prices []float64) float64 {
-
- if len(prices) < period+1 {
-  return 0
- }
-
- var gain float64
- var loss float64
-
- for i := len(prices)-period; i < len(prices); i++ {
-
-  diff := prices[i] - prices[i-1]
-
-  if diff > 0 {
-   gain += diff
-  } else {
-   loss += -diff
-  }
- }
-
- if loss == 0 {
-  return 100
- }
-
- rs := gain / loss
-
- return 100 - (100 / (1 + rs))
-}
 
 func calculateEMA(period int, prices []float64) float64 {
 
- if len(prices) < period {
-  return 0
- }
+	if len(prices) < period {
+		return 0
+	}
 
- k := 2.0 / float64(period+1)
+	k := 2.0 / float64(period+1)
 
- ema := prices[0]
+	ema := prices[0]
 
- for i := 1; i < len(prices); i++ {
-  ema = (prices[i] * k) + (ema * (1 - k))
- }
+	for i := 1; i < len(prices); i++ {
+		ema = (prices[i] * k) + (ema * (1 - k))
+	}
 
- return ema
+	return ema
 }
-func updateCandle(currentPrice float64) {
 
- if currentCandle.Open == 0 {
+func calculateRSI(period int, prices []float64) float64 {
 
-  currentCandle.Open = currentPrice
-  currentCandle.High = currentPrice
-  currentCandle.Low = currentPrice
-  currentCandle.Close = currentPrice
-  currentCandle.Time = time.Now()
+	if len(prices) < period+1 {
+		return 0
+	}
 
-  return
- }
+	var gain float64
+	var loss float64
 
- if currentPrice > currentCandle.High {
-  currentCandle.High = currentPrice
- }
+	for i := len(prices) - period; i < len(prices); i++ {
 
- if currentPrice < currentCandle.Low {
-  currentCandle.Low = currentPrice
- }
+		diff := prices[i] - prices[i-1]
 
- currentCandle.Close = currentPrice
+		if diff > 0 {
+			gain += diff
+		} else {
+			loss += -diff
+		}
+	}
 
- if time.Since(currentCandle.Time) >= 5*time.Minute {
+	if loss == 0 {
+		return 100
+	}
 
-  candleCloses = append(
-   candleCloses,
-   currentCandle.Close,
-  )
+	rs := gain / loss
 
-  if len(candleCloses) > 100 {
-   candleCloses = candleCloses[1:]
-  }
-
-  sendTelegram(
-   fmt.Sprintf(
-    "🕯️ Candle 5m\nO: %.0f\nH: %.0f\nL: %.0f\nC: %.0f",
-    currentCandle.Open,
-    currentCandle.High,
-    currentCandle.Low,
-    currentCandle.Close,
-   ),
-  )
-  prevEMA9 = ema9
-	prevEMA21 = ema21
-	
-	ema9 = calculateEMA(9, candleCloses)
-	ema21 = calculateEMA(21, candleCloses)
-	ema50 = calculateEMA(10, candleCloses)
-	rsi = calculateRSI(14, candleCloses)
-  sendTelegram(fmt.Sprintf(
-				"📊 CHECK\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
-				ema9,
-				ema21,
-				ema50,
-				rsi,
-			))
-
-  currentCandle = Candle{}
- }
+	return 100 - (100 / (1 + rs))
 }
 
 func sendTelegram(message string) {
+
 	token := os.Getenv("BOT_TOKEN")
 	chatID := os.Getenv("CHAT_ID")
 
@@ -225,102 +165,83 @@ func sendTelegram(message string) {
 	}
 }
 
-func resetDailyLoss() {
-	today := time.Now().Day()
-
-	if today != currentDay {
-		currentDay = today
-		dailyLoss = 0
-
-		sendTelegram("🔄 Reset rugi harian")
-	}
-}
-
-func shouldTrade() bool {
-	if dailyLoss >= maxDailyLoss {
-		return false
-	}
-
-	return true
-}
-
-func getTradeAmount() float64 {
-	if virtualBalance >= fixedTradeLimit {
-		return fixedTradeLimit
-	}
-
-	return virtualBalance
-}
-
 func openPosition(price float64) {
 
-	 tradeAmount = getTradeAmount()
-	
-	 if tradeAmount <= 0 {
-	  return
-	 }
-	
-	 // spread + slippage saat BUY
-	 realBuyPrice := price *
-	  (1 + spreadPercent + slippagePercent)
-	
-	 buyFee := tradeAmount * buyFeePercent
-	
-	 netTrade := tradeAmount - buyFee
-	
-	 coinAmount = netTrade / realBuyPrice
-	
-	 entryPrice = realBuyPrice
-	
-	 tpPrice = entryPrice * (1 + tpPercent)
-	 slPrice = entryPrice * (1 - slPercent)
-	
-	 inPosition = true
-	
-	 sendTelegram(fmt.Sprintf(
-	  "🚀 BUY ETHIDR\n\nEntry: %.0f\nFee: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f",
-	  entryPrice,
-	  buyFee,
-	  tpPrice,
-	  slPrice,
-	  tradeAmount,
-	 ))
+	if virtualBalance < 10000 {
+
+		sendTelegram(
+			fmt.Sprintf(
+				"🛑 BOT STOP\nSaldo: Rp%.0f",
+				virtualBalance,
+			),
+		)
+
+		return
+	}
+
+	tradeAmount = fixedTradeLimit
+
+	if tradeAmount > virtualBalance {
+		tradeAmount = virtualBalance
+	}
+
+	realBuyPrice := price *
+		(1 + spreadPercent + slippagePercent)
+
+	buyFee := tradeAmount * buyFeePercent
+
+	netTrade := tradeAmount - buyFee
+
+	coinAmount = netTrade / realBuyPrice
+
+	entryPrice = realBuyPrice
+
+	tpPrice = entryPrice * (1 + tpPercent)
+	slPrice = entryPrice * (1 - slPercent)
+
+	inPosition = true
+
+	sendTelegram(
+		fmt.Sprintf(
+			"🚀 BUY ETHIDR\n\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nRSI: %.2f",
+			entryPrice,
+			tpPrice,
+			slPrice,
+			rsi,
+		),
+	)
 }
 
 func closePosition(price float64, reason string) {
-	 if !inPosition {
-	  return
-	 }
-	
-	 if coinAmount <= 0 {
-	  return
-	 }
-	 // spread + slippage saat SELL
-	 realSellPrice := price *
-	  (1 - spreadPercent - slippagePercent)
-	
-	 result := coinAmount * realSellPrice
-	
-	 sellFee := result * sellFeePercent
-	
-	 netResult := result - sellFee
-	
-	 pnl := netResult - tradeAmount
-	
-	 virtualBalance += pnl
-	
-	 status := reason
-	 
-	 sendTelegram(fmt.Sprintf(
-	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
-	  status,
-	  realSellPrice,
-	  sellFee,
-	  pnl,
-	  virtualBalance,
-	 ))
-	
-	 inPosition = false
+
+	if !inPosition {
+		return
+	}
+
+	realSellPrice := price *
+		(1 - spreadPercent - slippagePercent)
+
+	result := coinAmount * realSellPrice
+
+	sellFee := result * sellFeePercent
+
+	netResult := result - sellFee
+
+	pnl := netResult - tradeAmount
+
+	virtualBalance += pnl
+
+	sendTelegram(
+		fmt.Sprintf(
+			"%s\n\nExit: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
+			reason,
+			realSellPrice,
+			pnl,
+			virtualBalance,
+		),
+	)
+
+	inPosition = false
 
 	entryPrice = 0
 	tpPrice = 0
@@ -328,36 +249,93 @@ func closePosition(price float64, reason string) {
 	coinAmount = 0
 	tradeAmount = 0
 }
+
+func updateCandle(currentPrice float64) {
+
+	if currentCandle.Open == 0 {
+
+		currentCandle.Open = currentPrice
+		currentCandle.High = currentPrice
+		currentCandle.Low = currentPrice
+		currentCandle.Close = currentPrice
+		currentCandle.Time = time.Now()
+
+		return
+	}
+
+	if currentPrice > currentCandle.High {
+		currentCandle.High = currentPrice
+	}
+
+	if currentPrice < currentCandle.Low {
+		currentCandle.Low = currentPrice
+	}
+
+	currentCandle.Close = currentPrice
+
+	if time.Since(currentCandle.Time) >= 5*time.Minute {
+
+		candleCloses = append(
+			candleCloses,
+			currentCandle.Close,
+		)
+
+		if len(candleCloses) > 100 {
+			candleCloses = candleCloses[1:]
+		}
+
+		ema9 = calculateEMA(9, candleCloses)
+		ema21 = calculateEMA(21, candleCloses)
+
+		// versi cepat
+		ema50 = calculateEMA(10, candleCloses)
+
+		rsi = calculateRSI(14, candleCloses)
+
+		sendTelegram(
+			fmt.Sprintf(
+				"📊 CHECK\nCandle: %d\nEMA9: %.0f\nEMA21: %.0f\nEMA10: %.0f\nRSI: %.2f",
+				len(candleCloses),
+				ema9,
+				ema21,
+				ema50,
+				rsi,
+			),
+		)
+
+		currentCandle = Candle{}
+	}
+}
+
 func connectWS() {
+
 	for {
+
 		log.Println("connecting websocket...")
 
-		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		conn, _, err := websocket.DefaultDialer.Dial(
+			wsURL,
+			nil,
+		)
+
 		if err != nil {
-			log.Println("dial error:", err)
+			log.Println(err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
 
 		sendTelegram("🟢 WebSocket connected")
 
-		// AUTH
 		auth := AuthMessage{
 			ID: 1,
 		}
 
-		auth.Params.Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE5NDY2MTg0MTV9.UR1lBM6Eqh0yWz-PVirw1uPCxe60FdchR8eNVdsskeo"
+		auth.Params.Token = "ISI_TOKEN_KAMU"
 
-		err = conn.WriteJSON(auth)
-		if err != nil {
-			log.Println("auth error:", err)
-			conn.Close()
-			continue
-		}
+		conn.WriteJSON(auth)
 
 		time.Sleep(1 * time.Second)
 
-		// SUBSCRIBE
 		subscribe := SubscribeMessage{
 			Method: 1,
 			ID:     2,
@@ -365,33 +343,27 @@ func connectWS() {
 
 		subscribe.Params.Channel = "chart:tick-ethidr"
 
-		err = conn.WriteJSON(subscribe)
-		if err != nil {
-			log.Println("subscribe error:", err)
-			conn.Close()
-			continue
-		}
+		conn.WriteJSON(subscribe)
 
 		for {
+
 			_, message, err := conn.ReadMessage()
+
 			if err != nil {
-				log.Println("read error:", err)
-				sendTelegram("🔴 WebSocket disconnected, reconnecting...")
+
+				sendTelegram(
+					"🔴 WebSocket disconnected",
+				)
+
 				conn.Close()
+
 				break
-			}
-
-			log.Println(string(message))
-
-			resetDailyLoss()
-
-			if !shouldTrade() {
-				continue
 			}
 
 			var wsMsg WSMessage
 
 			err = json.Unmarshal(message, &wsMsg)
+
 			if err != nil {
 				continue
 			}
@@ -411,112 +383,88 @@ func connectWS() {
 			priceRaw := last[2]
 
 			var currentPrice float64
-			
+
 			switch v := priceRaw.(type) {
-			
+
 			case float64:
 				currentPrice = v
-			
+
 			case string:
 				fmt.Sscanf(v, "%f", &currentPrice)
-			
+
 			default:
 				continue
 			}
-			
+
 			if currentPrice <= 0 {
 				continue
 			}
-			
-			log.Println("price:", currentPrice)
+
 			updateCandle(currentPrice)
 
-			/*if len(candleCloses) >= 15 {
-			
-			 prevEMA9 = ema9
-			 prevEMA21 = ema21
-			
-			 ema9 = calculateEMA(
-			  9,
-			  candleCloses,
-			 )
-			
-			 ema21 = calculateEMA(
-			  21,
-			  candleCloses,
-			 )
-			
-			 ema50 = calculateEMA(
-			  10,
-			  candleCloses,
-			 )
-			
-			 rsi = calculateRSI(
-			  14,
-			  candleCloses,
-			 )
-			
-			 log.Printf(
-			  "EMA9: %.0f | EMA21: %.0f | EMA50: %.0f | RSI: %.2f",
-			  ema9,
-			  ema21,
-			  ema50,
-			  rsi,
-			 )
-			}*/
-			if time.Since(lastReport) >= 4*time.Hour {
-
-			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
-			
-			 sendTelegram(fmt.Sprintf(
-			  "📊 ETH LIVE\n\nCurrent: %.0f\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nPerubahan: %.3f%%",
-			  currentPrice,
-			  entryPrice,
-			  tpPrice,
-			  slPrice,
-			  changePercent,
-			 ))
-			
-			 lastReport = time.Now()
-			}
+			// versi cepat:
+			// mulai trading setelah 21 candle
 			if !inPosition {
 
-			 if len(candleCloses) >= 10 &&
-			  ema9 > ema21 &&
-			  currentPrice > ema50 &&
-			  rsi > 45 &&
-			  rsi < 70 {
-			
-			  sendTelegram(
-			   fmt.Sprintf(
-			    "📈 BUY SIGNAL\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
-			    ema9,
-			    ema21,
-			    ema50,
-			    rsi,
-			   ),
-			  )
-			
-			  openPosition(currentPrice)
-			 }
+				if len(candleCloses) >= 21 &&
+					ema9 > ema21 &&
+					currentPrice > ema50 &&
+					rsi > 45 &&
+					rsi < 70 {
+
+					sendTelegram("📈 BUY SIGNAL")
+
+					openPosition(currentPrice)
+				}
 			}
-		if inPosition {
-			if currentPrice >= tpPrice {
-			 closePosition(currentPrice,"✅ TP HIT")
-			 continue
+
+			if inPosition {
+
+				if currentPrice >= tpPrice {
+
+					closePosition(
+						currentPrice,
+						"✅ TP HIT",
+					)
+
+					continue
+				}
+
+				if currentPrice <= slPrice {
+
+					closePosition(
+						currentPrice,
+						"❌ SL HIT",
+					)
+
+					continue
+				}
 			}
-			
-			if currentPrice <= slPrice {
-			 closePosition(currentPrice,"❌ SL HIT")
-			 continue
-			}
+
+			if time.Since(lastReport) >= 4*time.Hour {
+
+				changePercent :=
+					((currentPrice - entryPrice) / entryPrice) * 100
+
+				sendTelegram(
+					fmt.Sprintf(
+						"📊 ETH LIVE\nCurrent: %.0f\nPerubahan: %.2f%%",
+						currentPrice,
+						changePercent,
+					),
+				)
+
+				lastReport = time.Now()
 			}
 		}
 	}
 }
 
 func main() {
+
 	lastReport = time.Now()
+
 	sendTelegram("🤖 Bot started")
+
 	connectWS()
 }
