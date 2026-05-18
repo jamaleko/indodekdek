@@ -174,6 +174,13 @@ func updateCandle(currentPrice float64) {
     currentCandle.Close,
    ),
   )
+  prevEMA9 = ema9
+	prevEMA21 = ema21
+	
+	ema9 = calculateEMA(9, candleCloses)
+	ema21 = calculateEMA(21, candleCloses)
+	ema50 = calculateEMA(10, candleCloses)
+	rsi = calculateRSI(14, candleCloses)
   sendTelegram(fmt.Sprintf(
 				"📊 CHECK\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
 				ema9,
