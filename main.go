@@ -466,6 +466,13 @@ func connectWS() {
 			 lastReport = time.Now()
 			}
 			if !inPosition {
+				sendTelegram(fmt.Sprintf(
+		"📊 CHECK\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
+		ema9,
+		ema21,
+		ema50,
+		rsi,
+	))
 
 			 if prevEMA9 <= prevEMA21 &&
 			  ema9 > ema21 &&
