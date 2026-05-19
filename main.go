@@ -13,14 +13,26 @@ import (
 )
 
 const (
-	wsURL           = "wss://ws3.indodax.com/ws/"
+	apikey			= "ini"
+	secretKey		= "ini"
+
+	symbol			= "SUIUSDT"
+	//wsURL         = "wss://ws3.indodax.com/ws/"
+	timeframe		= "5m"
+	emaFast			= 9
+	emaSlow			= 14
+	emaTrend		= 10
+
+	rsiMin			= 40
+	rsiMax			= 75
+	
 	tpPercent       = 0.008 // +0.5% (kalau eth 0.0025 masih rugi walaupun TP)
 	slPercent       = 0.004 // -0.3%
-	maxDailyLoss    = 1000.0
-	fixedTradeLimit = 10000.0
+	//maxDailyLoss    = 1000.0
+	//fixedTradeLimit = 10000.0
 
-	buyFeePercent  = 0.002111 // ganti sesuai fee asli
-	sellFeePercent = 0.004211 // ganti sesuai fee asli
+	buyFeePercent  = 0.001 // ganti sesuai fee asli
+	sellFeePercent = 0.001 // ganti sesuai fee asli
 	
 	spreadPercent  = 0.0001
 	slippagePercent = 0.0001
