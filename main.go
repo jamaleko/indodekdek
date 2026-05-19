@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	paperTrade		= true
 	apikey			= "ini"
 	secretKey		= "ini"
 
@@ -323,14 +324,22 @@ func closePosition(price float64, reason string) {
 	
 	 status := reason
 	 
-	 sendTelegram(fmt.Sprintf(
+	 /*sendTelegram(fmt.Sprintf(
 	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
 	  status,
 	  realSellPrice,
 	  sellFee,
 	  pnl,
 	  virtualBalance,
-	 ))
+	 ))*/
+	sendTelegram(
+	    fmt.Sprintf(
+	        "%s\n\nExit: %.4f\nPnL: %.4f USDT",
+	        status,
+	        price,
+	        pnl,
+	    ),
+	)
 	
 	 inPosition = false
 
@@ -444,7 +453,7 @@ func connectWS() {
      rsi > 40 &&
      rsi < 75 {
 
-     sendTelegram(
+     /*sendTelegram(
       fmt.Sprintf(
        "📈 BUY SIGNAL\nEMA9: %.4f\nEMA21: %.4f\nEMA50: %.4f\nRSI: %.2f",
        ema9,
@@ -452,7 +461,17 @@ func connectWS() {
        ema50,
        rsi,
       ),
-     )
+     )*/
+	 sendTelegram(
+	    fmt.Sprintf(
+	        "📈 BUY SIGNAL\n\nTrade: %.2f USDT\nEMA9: %.4f\nEMA21: %.4f\nEMA50: %.4f\nRSI: %.2f",
+	        tradeAmount,
+	        ema9,
+	        ema21,
+	        ema50,
+	        rsi,
+	    ),
+	)
 
      openPosition(
       currentPrice,
