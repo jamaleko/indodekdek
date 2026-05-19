@@ -9,9 +9,9 @@ import (
 
 type BinanceKline struct {
  K struct {
-  Close string json:"c"
-  Closed bool   json:"x"
- } json:"k"
+  Close string `json:"c"`
+  Closed bool   `json:"x"`
+ } `json:"k"`
 }
 
 func connectBinanceWS() {
