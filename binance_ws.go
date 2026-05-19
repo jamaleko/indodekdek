@@ -3,7 +3,7 @@ package main
 import (
  "encoding/json"
  "log"
-
+ "fmt"
  "github.com/gorilla/websocket"
 )
 
@@ -35,7 +35,7 @@ func connectBinanceWS() {
    continue
   }
 
-  var data BinanceKline
+  var wsMsg BinanceKline
 
   err = json.Unmarshal(msg, &data)
   if err != nil {
