@@ -28,8 +28,8 @@ const (
 	
 	tpPercent       = 0.008 // +0.5% (kalau eth 0.0025 masih rugi walaupun TP)
 	slPercent       = 0.004 // -0.3%
-	//maxDailyLoss    = 1000.0
-	//fixedTradeLimit = 10000.0
+	maxDailyLoss    = 0.000057
+	fixedTradeLimit = 5.0
 
 	buyFeePercent  = 0.001 // ganti sesuai fee asli
 	sellFeePercent = 0.001 // ganti sesuai fee asli
@@ -66,12 +66,7 @@ var (
 	currentCandle Candle
  	candleCloses []float64
 )
-type BinanceKline struct {
- K struct {
-  Close string `json:"c"`
-  Closed bool   `json:"x"`
- } `json:"k"`
-}
+
 type Candle struct {
  Open  float64
  High  float64
