@@ -29,7 +29,7 @@ const (
 	
 	tpPercent       = 0.008 // +0.5% (kalau eth 0.0025 masih rugi walaupun TP)
 	slPercent       = 0.004 // -0.3%
-	maxDailyLoss    = 0.000057
+	maxDailyLoss    = 0.34
 	fixedTradeLimit = 5.0
 
 	buyFeePercent  = 0.001 // ganti sesuai fee asli
@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	virtualBalance = 13825.0
+	virtualBalance = 5.65
 	dailyLoss      = 0.0
 	currentDay     = time.Now().Day()
 
@@ -291,13 +291,14 @@ func openPosition(price float64) {
 	 inPosition = true
 	
 	 sendTelegram(fmt.Sprintf(
-	  "🚀 BUY SUIIDR\n\nEntry: %.0f\nFee: %.0f\nTP: %.0f\nSL: %.0f\nTrade: Rp%.0f",
-	  entryPrice,
-	  buyFee,
-	  tpPrice,
-	  slPrice,
-	  tradeAmount,
-	 ))
+ "🚀 BUY %s\n\nEntry: %.4f\nFee: %.4f\nTP: %.4f\nSL: %.4f\nTrade: %.2f USDT",
+ symbol,
+ entryPrice,
+ buyFee,
+ tpPrice,
+ slPrice,
+ tradeAmount,
+))
 }
 
 func closePosition(price float64, reason string) {
@@ -333,13 +334,14 @@ func closePosition(price float64, reason string) {
 	  virtualBalance,
 	 ))*/
 	sendTelegram(
-	    fmt.Sprintf(
-	        "%s\n\nExit: %.4f\nPnL: %.4f USDT",
-	        status,
-	        price,
-	        pnl,
-	    ),
-	)
+ fmt.Sprintf(
+  "%s\n\nExit: %.4f\nFee: %.4f\nPnL: %.4f USDT",
+  status,
+  realSellPrice,
+  sellFee,
+  pnl,
+ ),
+)
 	
 	 inPosition = false
 
@@ -462,6 +464,7 @@ func connectWS() {
        rsi,
       ),
      )*/
+		 tradeAmount := getTradeAmount()
 	 sendTelegram(
 	    fmt.Sprintf(
 	        "📈 BUY SIGNAL\n\nTrade: %.2f USDT\nEMA9: %.4f\nEMA21: %.4f\nEMA50: %.4f\nRSI: %.2f",
