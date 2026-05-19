@@ -66,6 +66,9 @@ var (
 
 	currentCandle Candle
  	candleCloses []float64
+
+	winCount  = 0
+    loseCount = 0
 )
 
 type Candle struct {
@@ -244,7 +247,30 @@ func resetDailyLoss() {
 	if today != currentDay {
 		currentDay = today
 		dailyLoss = 0
+totalTrade := winCount + loseCount
 
+winRate := 0.0
+
+if totalTrade > 0 {
+    winRate =
+        float64(winCount) /
+        float64(totalTrade) * 100
+}
+
+sendTelegram(
+ fmt.Sprintf(
+  "📊 Statistik Harian\n\n"+
+   "✅ Win: %d\n"+
+   "❌ Lose: %d\n"+
+   "💰 Saldo: %.4f USDT\n"+
+   "📈 Win Rate: %.1f%%",
+
+  winCount,
+  loseCount,
+  virtualBalance,
+  winRate,
+ ),
+)
 		sendTelegram("🔄 Reset rugi harian")
 	}
 }
@@ -325,14 +351,7 @@ func closePosition(price float64, reason string) {
 	
 	 status := reason
 	 
-	 /*sendTelegram(fmt.Sprintf(
-	  "%s\n\nExit: %.0f\nFee: %.0f\nPnL: %.0f\nSaldo: Rp%.0f",
-	  status,
-	  realSellPrice,
-	  sellFee,
-	  pnl,
-	  virtualBalance,
-	 ))*/
+	 /*
 	sendTelegram(
  fmt.Sprintf(
   "%s\n\nExit: %.4f\nFee: %.4f\nPnL: %.4f USDT",
@@ -340,6 +359,30 @@ func closePosition(price float64, reason string) {
   realSellPrice,
   sellFee,
   pnl,
+ ),
+)*/
+	if reason == "✅ TP HIT" {
+    winCount++
+}
+
+if reason == "❌ SL HIT" {
+    loseCount++
+}
+	sendTelegram(
+ fmt.Sprintf(
+  "%s\n\n"+
+   "Entry: %.4f\n"+
+   "Exit: %.4f\n"+
+   "Fee: %.4f USDT\n"+
+   "PnL: %.4f USDT\n"+
+   "Saldo: %.4f USDT",
+
+  status,
+  entryPrice,
+  realSellPrice,
+  sellFee,
+  pnl,
+  virtualBalance,
  ),
 )
 	
