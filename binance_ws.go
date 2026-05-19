@@ -37,13 +37,13 @@ func connectBinanceWS() {
 
   var wsMsg BinanceKline
 
-  err = json.Unmarshal(msg, &data)
+  err = json.Unmarshal(msg, &wsMsg)
   if err != nil {
    continue
   }
 
   // hanya saat candle selesai
-  if data.K.Closed {
+  if wsMsg.K.Closed {
 
    var currentPrice float64
 
