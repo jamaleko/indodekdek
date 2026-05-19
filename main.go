@@ -66,7 +66,12 @@ var (
 	currentCandle Candle
  	candleCloses []float64
 )
-
+type BinanceKline struct {
+ K struct {
+  Close string json:"c"
+  Closed bool   json:"x"
+ } json:"k"
+}
 type Candle struct {
  Open  float64
  High  float64
@@ -341,190 +346,149 @@ func closePosition(price float64, reason string) {
 	tradeAmount = 0
 }
 func connectWS() {
-	for {
-		log.Println("connecting websocket...")
 
-		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-		if err != nil {
-			log.Println("dial error:", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
+ for {
 
-		sendTelegram("🟢 WebSocket connected")
+  log.Println("connecting Binance websocket...")
 
-		// AUTH
-		auth := AuthMessage{
-			ID: 1,
-		}
+  conn, _, err := websocket.DefaultDialer.Dial(
+   "wss://stream.binance.com:9443/ws/suiusdt@kline_5m",
+   nil,
+  )
 
-		auth.Params.Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE5NDY2MTg0MTV9.UR1lBM6Eqh0yWz-PVirw1uPCxe60FdchR8eNVdsskeo"
+  if err != nil {
+   log.Println("dial error:", err)
+   time.Sleep(5 * time.Second)
+   continue
+  }
 
-		err = conn.WriteJSON(auth)
-		if err != nil {
-			log.Println("auth error:", err)
-			conn.Close()
-			continue
-		}
+  sendTelegram("🟢 Binance WebSocket connected")
 
-		time.Sleep(1 * time.Second)
+  for {
 
-		// SUBSCRIBE
-		subscribe := SubscribeMessage{
-			Method: 1,
-			ID:     2,
-		}
+   _, message, err := conn.ReadMessage()
 
-		subscribe.Params.Channel = "chart:tick-suiidr"
+   if err != nil {
 
-		err = conn.WriteJSON(subscribe)
-		if err != nil {
-			log.Println("subscribe error:", err)
-			conn.Close()
-			continue
-		}
+    log.Println("read error:", err)
 
-		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("read error:", err)
-				sendTelegram("🔴 WebSocket disconnected, reconnecting...")
-				conn.Close()
-				break
-			}
+    sendTelegram(
+     "🔴 Binance disconnected, reconnecting...",
+    )
 
-			log.Println(string(message))
+    conn.Close()
 
-			resetDailyLoss()
+    break
+   }
 
-			if !shouldTrade() {
-				continue
-			}
+   resetDailyLoss()
 
-			var wsMsg WSMessage
+   if !shouldTrade() {
+    continue
+   }
 
-			err = json.Unmarshal(message, &wsMsg)
-			if err != nil {
-				continue
-			}
+   var wsMsg BinanceKline
 
-			rows := wsMsg.Result.Data.Data
+   err = json.Unmarshal(
+    message,
+    &wsMsg,
+   )
 
-			if len(rows) == 0 {
-				continue
-			}
+   if err != nil {
+    continue
+   }
 
-			last := rows[len(rows)-1]
+   // hanya candle yang selesai
+   if !wsMsg.K.Closed {
+    continue
+   }
 
-			if len(last) < 3 {
-				continue
-			}
+   var currentPrice float64
 
-			priceRaw := last[2]
+   fmt.Sscanf(
+    wsMsg.K.Close,
+    "%f",
+    &currentPrice,
+   )
 
-			var currentPrice float64
-			
-			switch v := priceRaw.(type) {
-			
-			case float64:
-				currentPrice = v
-			
-			case string:
-				fmt.Sscanf(v, "%f", &currentPrice)
-			
-			default:
-				continue
-			}
-			
-			if currentPrice <= 0 {
-				continue
-			}
-			
-			log.Println("price:", currentPrice)
-			updateCandle(currentPrice)
+   if currentPrice <= 0 {
+    continue
+   }
 
-			/*if len(candleCloses) >= 15 {
-			
-			 prevEMA9 = ema9
-			 prevEMA21 = ema21
-			
-			 ema9 = calculateEMA(
-			  9,
-			  candleCloses,
-			 )
-			
-			 ema21 = calculateEMA(
-			  21,
-			  candleCloses,
-			 )
-			
-			 ema50 = calculateEMA(
-			  10,
-			  candleCloses,
-			 )
-			
-			 rsi = calculateRSI(
-			  14,
-			  candleCloses,
-			 )
-			
-			 log.Printf(
-			  "EMA9: %.0f | EMA21: %.0f | EMA50: %.0f | RSI: %.2f",
-			  ema9,
-			  ema21,
-			  ema50,
-			  rsi,
-			 )
-			}*/
-			if time.Since(lastReport) >= 4*time.Hour {
+   log.Println(
+    "close:",
+    currentPrice,
+   )
 
-			 changePercent := ((currentPrice - entryPrice) / entryPrice) * 100
-			
-			 sendTelegram(fmt.Sprintf(
-			  "📊 ETH LIVE\n\nCurrent: %.0f\nEntry: %.0f\nTP: %.0f\nSL: %.0f\nPerubahan: %.3f%%",
-			  currentPrice,
-			  entryPrice,
-			  tpPrice,
-			  slPrice,
-			  changePercent,
-			 ))
-			
-			 lastReport = time.Now()
-			}
-			if !inPosition {
+   updateCandle(currentPrice)
 
-			 if len(candleCloses) >= 14 &&
-			  ema9 > ema21 &&
-			  currentPrice > ema50 &&
-			  rsi > 45 &&
-			  rsi < 70 {
-			
-			  sendTelegram(
-			   fmt.Sprintf(
-			    "📈 BUY SIGNAL\nEMA9: %.0f\nEMA21: %.0f\nEMA50: %.0f\nRSI: %.2f",
-			    ema9,
-			    ema21,
-			    ema50,
-			    rsi,
-			   ),
-			  )
-			
-			  openPosition(currentPrice)
-			 }
-			}
-		if inPosition {
-			if currentPrice >= tpPrice {
-			 closePosition(currentPrice,"✅ TP HIT")
-			 continue
-			}
-			
-			if currentPrice <= slPrice {
-			 closePosition(currentPrice,"❌ SL HIT")
-			 continue
-			}
-			}
-		}
-	}
+   if time.Since(lastReport) >= 4*time.Hour {
+
+    changePercent :=
+     ((currentPrice-entryPrice)/entryPrice)*100
+
+    sendTelegram(
+     fmt.Sprintf(
+      "📊 SUI LIVE\n\nCurrent: %.4f\nEntry: %.4f\nTP: %.4f\nSL: %.4f\nPerubahan: %.3f%%",
+      currentPrice,
+      entryPrice,
+      tpPrice,
+      slPrice,
+      changePercent,
+     ),
+    )
+
+    lastReport = time.Now()
+   }
+
+   if !inPosition {
+
+    if len(candleCloses) >= 14 &&
+     ema9 > ema21 &&
+     currentPrice > ema50 &&
+     rsi > 40 &&
+     rsi < 75 {
+
+     sendTelegram(
+      fmt.Sprintf(
+       "📈 BUY SIGNAL\nEMA9: %.4f\nEMA21: %.4f\nEMA50: %.4f\nRSI: %.2f",
+       ema9,
+       ema21,
+       ema50,
+       rsi,
+      ),
+     )
+
+     openPosition(
+      currentPrice,
+     )
+    }
+   }
+
+   if inPosition {
+
+    if currentPrice >= tpPrice {
+
+     closePosition(
+      currentPrice,
+      "✅ TP HIT",
+     )
+
+     continue
+    }
+
+    if currentPrice <= slPrice {
+
+     closePosition(
+      currentPrice,
+      "❌ SL HIT",
+     )
+
+     continue
+    }
+   }
+  }
+ }
 }
 
 func main() {
