@@ -49,7 +49,7 @@ var (
 	tpPrice    = 0.0
 	slPrice    = 0.0
 
-	tradeAmount = 0.0
+	tradeAmount = fixedTradeLimit
 	coinAmount  = 0.0
 
 	lastReport time.Time
