@@ -45,7 +45,24 @@ func connectBinanceWS() {
   // hanya saat candle selesai
   if data.K.Closed {
 
-   updateCandle(data.K.Close)
+   var currentPrice float64
+
+   fmt.Sscanf(
+       wsMsg.K.Close,
+       "%f",
+       &currentPrice,
+   )
+   
+   if currentPrice <= 0 {
+       continue
+   }
+   
+   log.Println(
+       "close:",
+       currentPrice,
+   )
+   
+   updateCandle(currentPrice)
 
   }
  }
