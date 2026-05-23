@@ -493,12 +493,11 @@ func connectWS() {
    if !inPosition {
 
     if len(candleCloses) >= 50 &&
-     ema9 > ema21 &&
-	 ema21 > ema50 &&
-	 prevEMA9 <= prevEMA21 &&
-     currentPrice > ema50 &&
-     rsi > 50 &&
-     rsi < 65 {
+    ema9 > ema21 &&
+    ema21 > ema50 &&
+    currentPrice > ema50 &&
+    rsi > 50 &&
+    rsi < 65 {
 
      /*sendTelegram(
       fmt.Sprintf(
