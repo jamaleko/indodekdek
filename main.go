@@ -102,6 +102,82 @@ type WSMessage struct {
 		} `json:"data"`
 	} `json:"result"`
 }
+func loadHistoryCandles() {
+
+ url := fmt.Sprintf(
+  "https://api.binance.com/api/v3/klines?symbol=%s&interval=5m&limit=50",
+  symbol,
+ )
+
+ resp, err := http.Get(url)
+
+ if err != nil {
+  log.Println("history error:", err)
+  return
+ }
+
+ defer resp.Body.Close()
+
+ var data [][]interface{}
+
+ err = json.NewDecoder(resp.Body).Decode(&data)
+
+ if err != nil {
+  log.Println("decode error:", err)
+  return
+ }
+
+ candleCloses = []float64{}
+
+ for _, candle := range data {
+
+  closeStr := candle[4].(string)
+
+  var closePrice float64
+
+  fmt.Sscanf(
+   closeStr,
+   "%f",
+   &closePrice,
+  )
+
+  candleCloses = append(
+   candleCloses,
+   closePrice,
+  )
+ }
+
+ ema9 = calculateEMA(
+  9,
+  candleCloses,
+ )
+
+ ema21 = calculateEMA(
+  21,
+  candleCloses,
+ )
+
+ ema50 = calculateEMA(
+  50,
+  candleCloses,
+ )
+
+ rsi = calculateRSI(
+  14,
+  candleCloses,
+ )
+
+ sendTelegram(
+  fmt.Sprintf(
+   "📚 Loaded %d candles\nEMA9: %.4f\nEMA21: %.4f\nEMA50: %.4f\nRSI: %.2f",
+   len(candleCloses),
+   ema9,
+   ema21,
+   ema50,
+   rsi,
+  ),
+ )
+}
 func calculateRSI(period int, prices []float64) float64 {
 
  if len(prices) < period+1 {
@@ -555,5 +631,6 @@ func connectWS() {
 func main() {
 	lastReport = time.Now()
 	sendTelegram("🤖 Bot started")
+	loadHistoryCandles()
 	connectWS()
 }
