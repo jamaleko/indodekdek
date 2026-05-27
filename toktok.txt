@@ -1,2 +1,4 @@
 BOT_TOKEN : 8979140782:AAFAKGwuaHyDjM9CFAqW_wzfTHAo2zhVbk4
 CHAT_ID : -1003994790869
+
+https://t.me/autoindodexdex
